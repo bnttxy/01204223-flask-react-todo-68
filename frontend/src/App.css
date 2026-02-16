@@ -1,46 +1,81 @@
 #root {
-  max-width: 1280px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
-  text-align: center;
 }
 
-.done {
+.App {
+  font-family: Arial, sans-serif;
+}
+
+.add-todo {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.todo-list {
+  list-style: none;
+  padding: 0;
+}
+
+.todo-item {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  background-color: #f9f9f9;
+}
+
+.todo-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.2em;
+  margin-bottom: 10px;
+}
+
+.done-text {
   text-decoration: line-through;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
   color: #888;
+}
+
+.delete-btn {
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+/* Styles for Comments */
+.comment-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #ccc;
+}
+
+.comment-list {
+  list-style: none;
+  padding-left: 10px;
+  margin-bottom: 10px;
+}
+
+.comment-list li {
+  font-size: 0.9em;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.add-comment {
+  display: flex;
+  gap: 5px;
+}
+
+.add-comment input {
+  flex-grow: 1;
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
