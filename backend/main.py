@@ -4,27 +4,37 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import Integer, String, ForeignKey
 from flask_migrate import Migrate
+from werkzeug.security import generate_password_hash, check_password_hash 
 
-# --- Config ---
 app = Flask(__name__)
 CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todos.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 class Base(DeclarativeBase):
-  pass
+    pass
 
-db = SQLAlchemy(app, model_class=Base)
+db = SQLAlchemy(model_class=Base) 
+db.init_app(app)
 migrate = Migrate(app, db)
 
-# --- Models ---
+
+class User(db.Model):
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String(80), unique=True, nullable=True)
+    password_hash: Mapped[str] = mapped_column(String(200), nullable=True)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 class TodoItem(db.Model):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String(100))
     done: Mapped[bool] = mapped_column(default=False)
     
-    # Relationship: One-to-Many (1 Todo มีหลาย Comment)
-    # cascade="all, delete" = ถ้าลบ Todo ให้ลบ Comment ทั้งหมดของมันด้วย
     comments: Mapped[list["Comment"]] = relationship(back_populates="todo", cascade="all, delete")
 
     def to_dict(self):
@@ -32,18 +42,13 @@ class TodoItem(db.Model):
             "id": self.id,
             "title": self.title,
             "done": self.done,
-            # ส่งรายการ comments กลับไปหา frontend ด้วย
             "comments": [comment.to_dict() for comment in self.comments]
         }
 
 class Comment(db.Model):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     message: Mapped[str] = mapped_column(String(250))
-    
-    # Foreign Key เชื่อมกับ TodoItem
     todo_id: Mapped[int] = mapped_column(ForeignKey('todo_item.id', ondelete="CASCADE"))
-    
-    # Relationship ย้อนกลับ
     todo: Mapped["TodoItem"] = relationship(back_populates="comments")
 
     def to_dict(self):
@@ -53,7 +58,6 @@ class Comment(db.Model):
             "todo_id": self.todo_id
         }
 
-# --- Routes (API) ---
 
 @app.route('/api/todos/', methods=['GET'])
 def get_todos():
@@ -63,7 +67,7 @@ def get_todos():
 @app.route('/api/todos/', methods=['POST'])
 def add_todo():
     data = request.get_json()
-    if 'title' not in data:
+    if not data or 'title' not in data:
         return jsonify({'error': 'Title is required'}), 400
         
     todo = TodoItem(title=data['title'], done=data.get('done', False))
@@ -85,19 +89,7 @@ def delete_todo(id):
     db.session.commit()
     return jsonify({'message': 'Todo deleted successfully'})
 
-@app.route('/api/todos/<int:todo_id>/comments/', methods=['POST'])
-def add_comment(todo_id):
-    todo = TodoItem.query.get_or_404(todo_id)
-    data = request.get_json()
-    
-    if not data or 'message' not in data:
-        return jsonify({'error': 'Message is required'}), 400
-
-    comment = Comment(message=data['message'], todo_id=todo.id)
-    db.session.add(comment)
-    db.session.commit()
-    
-    return jsonify(comment.to_dict())
-
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all() 
     app.run(debug=True)
