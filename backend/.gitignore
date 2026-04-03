@@ -1,3 +1,24 @@
+# Python bytecode (ไฟล์ที่ compile แล้ว ไม่ต้องเอาขึ้น)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment (สำคัญมาก! ห้ามเอาขึ้น เพราะแต่ละเครื่องต้องสร้างเอง)
+venv/
+env/
+ENV/
 /venv
-__pycache__
+
+# Environment variables (ไฟล์เก็บรหัสผ่าน/ความลับ ห้ามหลุดไป GitHub เด็ดขาด!)
 .env
+
+# Flask instance folder (ไฟล์เฉพาะตัวของแต่ละเครื่อง)
+instance/
+
+# SQLite databases (กรณีใช้ sqlite ในเครื่องตัวเองเพื่อทดสอบ)
+*.db
+*.sqlite3
+
+# Pytest
+.pytest_cache/
