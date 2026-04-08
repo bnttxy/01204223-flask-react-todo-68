@@ -1,59 +1,112 @@
-import { render, screen, fireEvent } from '@testing-library/react'
-import { vi } from 'vitest'
-import App from '../App.jsx'
+import TodoItem from './TodoItem.jsx';
+import { useState, useEffect } from 'react';
+import './App.css';
 
-const mockResponse = (body, ok = true) =>
-  Promise.resolve({
-    ok,
-    json: () => Promise.resolve(body),
-  });
+// เปลี่ยน URL เป็นแบบ Relative สำหรับทำ Deployment ขึ้น Server
+const TODOLIST_API_URL = '/api/todos/';
 
-const todoItem1 = { id: 1, title: 'First todo', done: false, comments: [] };
-const todoItem2 = { id: 2, title: 'Second todo', done: false, comments: [
-  { id: 1, message: 'First comment' },
-  { id: 2, message: 'Second comment' },
-] };
+function App() {
+  const [todoList, setTodoList] = useState([]);
+  const [newTodo, setNewTodo] = useState("");
 
-const originalTodoList = [todoItem1, todoItem2]
+  async function fetchTodoList() {
+    try {
+      const response = await fetch(TODOLIST_API_URL);
+      const data = await response.json();
+      setTodoList(data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  }
 
-describe('App', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
-  });
+  useEffect(() => {
+    fetchTodoList();
+  }, []);
 
-  afterEach(() => {
-    vi.resetAllMocks();
-    vi.unstubAllGlobals();
-  });
+  async function addNewTodo() {
+    if (newTodo.trim() === "") return;
+    try {
+      const response = await fetch(TODOLIST_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTodo }),
+      });
+      if (response.ok) {
+        setNewTodo("");
+        await fetchTodoList();
+      }
+    } catch (error) {
+      console.error("Error adding todo:", error);
+    }
+  }
 
-  it('renders correctly', async() => {
-    global.fetch.mockImplementationOnce(() => mockResponse(originalTodoList));
-    render(<App />);
+  async function toggleDone(id) {
+    try {
+      const response = await fetch(`${TODOLIST_API_URL}${id}/toggle/`, {
+        method: 'PATCH',
+      });
+      if (response.ok) await fetchTodoList();
+    } catch (error) {
+      console.error("Error toggling todo:", error);
+    }
+  }
 
-    expect(await screen.findByText(/First todo/)).toBeInTheDocument();
-    expect(await screen.findByText(/Second todo/)).toBeInTheDocument();
-    expect(await screen.findByText(/First comment/)).toBeInTheDocument();
-    expect(await screen.findByText(/Second comment/)).toBeInTheDocument();
-  });
+  async function deleteTodo(id) {
+    try {
+      const response = await fetch(`${TODOLIST_API_URL}${id}/`, {
+        method: 'DELETE',
+      });
+      if (response.ok) await fetchTodoList();
+    } catch (error) {
+      console.error("Error deleting todo:", error);
+    }
+  }
 
-  it('toggles done on a todo item', async() => {
-    const toggledTodoItem1 = { ...todoItem1, done: true };
+  async function addNewComment(todoId, newComment) {
+    if (!newComment || newComment.trim() === "") return;
 
-    global.fetch
-      .mockImplementationOnce(() => mockResponse(originalTodoList))    
-      .mockImplementationOnce(() => mockResponse(toggledTodoItem1));
+    try {
+      const response = await fetch(`${TODOLIST_API_URL}${todoId}/comments/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: newComment }),
+      });
 
-    render(<App />);
+      if (response.ok) {
+        await fetchTodoList();
+      }
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    }
+  }
 
-    // ตรวจสอบว่าของเดิมยังไม่มีคลาส done-text
-    expect(await screen.findByText(/First todo/)).not.toHaveClass('done-text');
+  return (
+    <div className="App">
+      <h1>Todo List + Comments</h1>
+      
+      <div className="add-todo">
+        <input
+          type="text"
+          placeholder="New task..."
+          value={newTodo}
+          onChange={(e) => setNewTodo(e.target.value)}
+        />
+        <button onClick={addNewTodo}>Add Task</button>
+      </div>
 
-    // กดสลับสถานะ
-    const toggleElement = await screen.findByText(/First todo/);
-    fireEvent.click(toggleElement);
+      <ul className="todo-list">
+        {todoList.map((todo) => (
+          <TodoItem 
+            key={todo.id} 
+            todo={todo}
+            toggleDone={toggleDone}
+            deleteTodo={deleteTodo}
+            addNewComment={addNewComment}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+}
 
-    // ตรวจสอบว่าเปลี่ยนคลาสเป็น done-text แล้ว
-    expect(await screen.findByText(/First todo/)).toHaveClass('done-text');
-    expect(global.fetch).toHaveBeenLastCalledWith(expect.stringMatching(/1\/toggle/), { method: 'PATCH' });
-  });
-});
+export default App;
